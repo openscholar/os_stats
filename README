@@ -1,0 +1,6 @@
+Provides statistics block for OS installation.  Stats stay cached for a day then regenerate at the next cron job.
+
+Statistics include:
+    Users
+    Publications
+    
