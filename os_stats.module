@@ -27,5 +27,28 @@
  }
  
 function _os_stats_content() {
-	return "sites: 50";
+	$out = "";
+	
+	//check cache
+	if ($cache = cache_get('os_stats_data')) {
+		$out .= "cached:<br />";
+		$out .= unserialize($cache->data);
+	} else {
+		//build and store data
+		//publications
+		$query = "SELECT COUNT(nid) FROM {node} WHERE type='biblio'";
+		$result = db_result(db_query($query));
+		$out .= "Publications: $result<br />";
+
+		$query = "SELECT COUNT(nid) FROM {og}";
+		$result = db_result(db_query($query));
+		$out .= "Vsites: $result<br />";
+		
+		
+		cache_set('os_stats_data', serialize($out), 'cache', time() + 60);
+		
+		$out = "uncached...rebuilding<Br />" . $out;
+	}
+	
+	return $out;
 }
