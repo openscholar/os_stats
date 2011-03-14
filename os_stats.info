@@ -1,0 +1,5 @@
+name = "os_stats"
+description = "Provides a statistics block for OpenScholar sites."
+core = 6.x
+dependencies[] = vsite
+dependencies[] = quant

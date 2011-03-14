@@ -1,0 +1,13 @@
+<?php 
+
+/**
+ * hook_install
+ */
+function os_stats_install() {
+}
+
+/**
+ * hook_uninstall
+ */
+function os_stats_uninstall() {
+}
