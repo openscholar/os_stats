@@ -9,7 +9,7 @@
 /*
  * Implementation of hook_block
  */
- function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
+function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
  	switch($op) {
  		case 'list':
  			$blocks[0]['info'] = t('OpenScholar Statistics');
@@ -24,30 +24,43 @@
  			
  	}
  
- }
+}
  
+
+/**
+ * returns array of stat name => its query
+ */
+function _os_stats_stats() {
+	return array(
+		"Publications" => "SELECT COUNT(nid) FROM {node} WHERE type='biblio'",
+		"Vsites" => "SELECT COUNT(nid) FROM {og}",
+	);
+}
+ 
+/** 
+ * Gets data from db, interacts with cache
+ */
 function _os_stats_content() {
 	$out = "";
+	$data = array();
 	
 	//check cache
 	if ($cache = cache_get('os_stats_data')) {
-		$out .= "cached:<br />";
-		$out .= unserialize($cache->data);
+		$data = unserialize($cache->data);
+		$out .= "<i>cached</i><Br />";
 	} else {
 		//build and store data
-		//publications
-		$query = "SELECT COUNT(nid) FROM {node} WHERE type='biblio'";
-		$result = db_result(db_query($query));
-		$out .= "Publications: $result<br />";
+		$out .= "<i>uncached...rebuilding</i><Br />";
+		
+		foreach (_os_stats_stats() as $stat => $query) {
+			$data[$stat] = db_result(db_query($query));
+		}
 
-		$query = "SELECT COUNT(nid) FROM {og}";
-		$result = db_result(db_query($query));
-		$out .= "Vsites: $result<br />";
-		
-		
-		cache_set('os_stats_data', serialize($out), 'cache', time() + 60);
-		
-		$out = "uncached...rebuilding<Br />" . $out;
+		cache_set('os_stats_data', serialize($data), 'cache', time() + 60);	
+	}
+	
+	foreach($data as $key => $value) {
+		$out .= $key . ': ' . $value . '<br />';	
 	}
 	
 	return $out;
