@@ -18,7 +18,7 @@ function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
  			break;
  		case 'view':
  			$block['subject'] = "OpenScholar Statistics";
- 			$block['content'] = _os_stats_content();
+ 			$block['content'] = "my block " . theme('os_stats_theme', _os_stats_content(), '');
  			return $block;
  			break;
  			
@@ -26,6 +26,30 @@ function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
  
 }
  
+/**
+ * Implementation of hook_theme()
+ */
+function os_stats_theme() {
+	return array(
+		'os_stats_block' => array(
+			'arguments' => array(
+				'text' => NULL,
+				'origin' => NULL,
+			),
+		),
+	);
+}
+
+/**
+ * Theme function for os_stats_block
+ */
+function theme_os_stats_block($text, $origin) {
+	$out = '<ul>\n';
+	foreach ($text as $key => $val) {
+		$out .= '<li>' . $key . ': ' . $val . '</li>\n';
+	}
+	$out .= '</ul>\n';
+}
 
 /**
  * returns array of stat name => its query
@@ -41,16 +65,16 @@ function _os_stats_stats() {
  * Gets data from db, interacts with cache
  */
 function _os_stats_content() {
-	$out = "";
+	//$out = "";
 	$data = array();
 	
 	//check cache
 	if ($cache = cache_get('os_stats_data')) {
 		$data = unserialize($cache->data);
-		$out .= "<i>cached</i><Br />";
+		//$out .= "<i>cached</i><Br />";
 	} else {
 		//build and store data
-		$out .= "<i>uncached...rebuilding</i><Br />";
+		//$out .= "<i>uncached...rebuilding</i><Br />";
 		
 		foreach (_os_stats_stats() as $stat => $query) {
 			$data[$stat] = db_result(db_query($query));
@@ -59,9 +83,12 @@ function _os_stats_content() {
 		cache_set('os_stats_data', serialize($data), 'cache', time() + 60);	
 	}
 	
+	/*
 	foreach($data as $key => $value) {
 		$out .= $key . ': ' . $value . '<br />';	
-	}
+	}*/
 	
-	return $out;
+	return $data;
 }
+
+// expiration happens during cron, so maybe a cron hook after cache clear could still run _os_stats_content...
