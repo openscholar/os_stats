@@ -18,7 +18,7 @@ function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
  			break;
  		case 'view':
  			$block['subject'] = "OpenScholar Statistics";
- 			$block['content'] = "my block " . theme('os_stats_theme', _os_stats_content(), '');
+ 			$block['content'] = theme('os_stats_block', _os_stats_content(), '');
  			return $block;
  			break;
  			
@@ -44,11 +44,8 @@ function os_stats_theme() {
  * Theme function for os_stats_block
  */
 function theme_os_stats_block($text, $origin) {
-	$out = '<ul>\n';
-	foreach ($text as $key => $val) {
-		$out .= '<li>' . $key . ': ' . $val . '</li>\n';
-	}
-	$out .= '</ul>\n';
+	$out = theme_item_list($text, NULL, 'ul');
+    return $out;
 }
 
 /**
@@ -77,7 +74,7 @@ function _os_stats_content() {
 		//$out .= "<i>uncached...rebuilding</i><Br />";
 		
 		foreach (_os_stats_stats() as $stat => $query) {
-			$data[$stat] = db_result(db_query($query));
+			$data[] = $stat . ': ' . db_result(db_query($query));
 		}
 
 		cache_set('os_stats_data', serialize($data), 'cache', time() + 60);	
