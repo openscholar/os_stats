@@ -15,56 +15,22 @@ function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
  			$blocks[0]['info'] = t('OpenScholar Statistics');
  			$blocks[0]['cache'] = BLOCK_CACHE_GLOBAL;
  			return $blocks;
- 			break;
  		case 'view':
  			$block['subject'] = "OpenScholar Statistics";
  			$block['content'] = theme('os_stats_block', _os_stats_content(), '');
- 			$block['status'] = TRUE;
- 			$block['region'] = 'footer';
- 			$block['pages'] = '<front>';
  			return $block;
+ 		case 'configure':
+ 			$form['os_stats_cache_expiration'] = array(
+ 				'#type' => 'textfield',
+				'#title' => 'OpenScholar Statistics cache expiration (in seconds)',
+				'#default_value' => variable_get('os_stats_cache_expiration', 3600),
+			);
+ 			return $form;
+ 		case 'save':
+			variable_set('os_stats_cache_expiration', (int)$edit['os_stats_cache_expiration']);
  			break;
- 			
  	}
  
-}
-
-/**
- * Implementation of hook_menu()
- */
-function os_stats_menu() {
-	$items['admin/os_stats'] = array(
-		'title' => 'OpenScholar Statistics',
-		'description' => 'Adjust OpenScholar Statistics settings',
-		'position' => 'right',
-		'weight' => -5,
-		'page callback' => 'system_admin_menu_block_page',
-		'access arguments' => array('administer site configuration'),
-		'file' => 'system.admin.inc',
-		'file path' => drupal_get_path('module', 'system'),
-	);
-	$items['admin/os_stats/settings'] = array(
-		'title' => 'OpenScholar Statistics Settings',
-		'description' => 'Change how OpenScholar Statistics behaves',
-		'page callback' => 'drupal_get_form',
-		'page arguments' => array('os_stats_admin_settings'),
-		'access arguments' => array('administer site configuration'),
-		'type' => MENU_NORMAL_ITEM,
-		'file' => 'os_stats.admin.inc',
-		//'file path' => drupal_get_path('module', 'os_stats'),
-	);
-	return $items;
-}
-
-function os_stats_admin_settings() {
-	$form['os_stats_cache_expiration'] = array(
-		'#type' => 'textfield',
-		'#title' => 'OpenScholar Statistics Cache Expiration',
-		'#description' => t('How long (in seconds) should statistics remain in cache before cron can refresh them?'),
-		'#default_value' => variable_get('os_stats_cache_expiration', 3600),
-		'#size' => 3,
-	);	
-	return system_settings_form($form);
 }
  
 /**
