@@ -55,6 +55,8 @@ function _os_stats_stats() {
 	return array(
 		"Publications" => "SELECT COUNT(nid) FROM {node} WHERE type='biblio'",
 		"Vsites" => "SELECT COUNT(nid) FROM {og}",
+		"Nodes" =>  "SELECT COUNT(nid) FROM {node}",
+		"Files" =>  "SELECT COUNT(fid) FROM {files}",
 	);
 }
  
