@@ -1,6 +1,10 @@
-Provides statistics block for OS installation.  Stats stay cached for a day then regenerate at the next cron job.
+Provides statistics block for OS installation.  Stats stay cached for an admin 
+defined period of time (1h by default) then regenerate at the next cron job.
 
 Statistics include:
     Users
     Publications
+    Nodes
+    Files uploaded
+    MB uploaded
     

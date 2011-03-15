@@ -19,11 +19,52 @@ function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
  		case 'view':
  			$block['subject'] = "OpenScholar Statistics";
  			$block['content'] = theme('os_stats_block', _os_stats_content(), '');
+ 			$block['status'] = TRUE;
+ 			$block['region'] = 'footer';
+ 			$block['pages'] = '<front>';
  			return $block;
  			break;
  			
  	}
  
+}
+
+/**
+ * Implementation of hook_menu()
+ */
+function os_stats_menu() {
+	$items['admin/os_stats'] = array(
+		'title' => 'OpenScholar Statistics',
+		'description' => 'Adjust OpenScholar Statistics settings',
+		'position' => 'right',
+		'weight' => -5,
+		'page callback' => 'system_admin_menu_block_page',
+		'access arguments' => array('administer site configuration'),
+		'file' => 'system.admin.inc',
+		'file path' => drupal_get_path('module', 'system'),
+	);
+	$items['admin/os_stats/settings'] = array(
+		'title' => 'OpenScholar Statistics Settings',
+		'description' => 'Change how OpenScholar Statistics behaves',
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('os_stats_admin_settings'),
+		'access arguments' => array('administer site configuration'),
+		'type' => MENU_NORMAL_ITEM,
+		'file' => 'os_stats.admin.inc',
+		//'file path' => drupal_get_path('module', 'os_stats'),
+	);
+	return $items;
+}
+
+function os_stats_admin_settings() {
+	$form['os_stats_cache_expiration'] = array(
+		'#type' => 'textfield',
+		'#title' => 'OpenScholar Statistics Cache Expiration',
+		'#description' => t('How long (in seconds) should statistics remain in cache before cron can refresh them?'),
+		'#default_value' => variable_get('os_stats_cache_expiration', 3600),
+		'#size' => 3,
+	);	
+	return system_settings_form($form);
 }
  
 /**
@@ -57,6 +98,7 @@ function _os_stats_stats() {
 		"Vsites" => "SELECT COUNT(nid) FROM {og}",
 		"Nodes" =>  "SELECT COUNT(nid) FROM {node}",
 		"Files" =>  "SELECT COUNT(fid) FROM {files}",
+		"MB Uploaded" => "SELECT(SELECT SUM(filesize) FROM {files}) / (1024.0*1024.0)",
 	);
 }
  
@@ -79,7 +121,7 @@ function _os_stats_content() {
 			$data[] = $stat . ': ' . db_result(db_query($query));
 		}
 
-		cache_set('os_stats_data', serialize($data), 'cache', time() + 60);	
+		cache_set('os_stats_data', serialize($data), 'cache', time() + variable_get('os_stats_cache_expiration', 3600));	
 	}
 	
 	/*
