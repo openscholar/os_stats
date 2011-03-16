@@ -10,24 +10,46 @@
  * Implementation of hook_block
  */
 function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
- 	switch($op) {
+ 	
+	switch($op) {
  		case 'list':
  			$blocks[0]['info'] = t('OpenScholar Statistics');
  			$blocks[0]['cache'] = BLOCK_CACHE_GLOBAL;
  			return $blocks;
+
  		case 'view':
  			$block['subject'] = "OpenScholar Statistics";
  			$block['content'] = theme('os_stats_block', _os_stats_content(), '');
  			return $block;
+ 		
  		case 'configure':
  			$form['os_stats_cache_expiration'] = array(
  				'#type' => 'textfield',
 				'#title' => 'OpenScholar Statistics cache expiration (in seconds)',
 				'#default_value' => variable_get('os_stats_cache_expiration', 3600),
 			);
+			$form['os_stats_select'] = array(
+				'#type' => 'fieldset',
+				'#title' => 'Choose statistics to display',
+				'#collapsible' => TRUE,
+				'#collapsed' => TRUE,
+			);
+			$stats = os_stats_stats();
+			foreach($stats as $stat => $def) {
+				$form['os_stats_select']['os_stats_stat_'.$stat] = array(
+					'#type' => 'checkbox',
+					'#title' => $def['description'],
+					'#default_value' => variable_get('os_stats_stat_'.$stat, TRUE),
+				);	
+			}
  			return $form;
+ 		
  		case 'save':
 			variable_set('os_stats_cache_expiration', (int)$edit['os_stats_cache_expiration']);
+			foreach(os_stats_stats() as $stat => $def) {
+				variable_set('os_stats_stat_'.$stat, (bool)$edit['os_stats_stat_'.$stat]); 
+			}
+			//clear our cache?
  			break;
  	}
  
@@ -56,44 +78,75 @@ function theme_os_stats_block($text, $origin) {
 }
 
 /**
- * returns array of stat name => its query
+ * Statistics available for this block
  */
-function _os_stats_stats() {
+function os_stats_stats() {
 	return array(
-		"Publications" => "SELECT COUNT(nid) FROM {node} WHERE type='biblio'",
-		"Vsites" => "SELECT COUNT(nid) FROM {og}",
-		"Nodes" =>  "SELECT COUNT(nid) FROM {node}",
-		"Files" =>  "SELECT COUNT(fid) FROM {files}",
-		"MB Uploaded" => "SELECT(SELECT SUM(filesize) FROM {files}) / (1024.0*1024.0)",
+		"Publications" => array(
+			"title" => "Publications",
+			"description" => "Biblio publications",
+			"query" => 	"SELECT COUNT(nid) FROM {node} WHERE type='biblio'",
+		),
+		"Vsites" => array(
+			"title" => "Vsites",
+			"description" => "Virtual sites in this OS installation",
+			"query" => "SELECT COUNT(nid) FROM {og}",
+		),
+		"Nodes" => array(
+			"title" => "Nodes",
+			"description" => "Drupal nodes",
+			"query" => "SELECT COUNT(nid) FROM {node}",
+		),
+		"Files" => array(
+			"title" => "Files",
+			"description" => "Files uploaded by users",
+			"query" => "SELECT COUNT(fid) FROM {files}",
+		),
+		"Filesize" => array(
+			"title" => "Total uploaded",
+			"description" => "Size of all files uploaded by users",
+			"query" => "SELECT SUM(filesize) FROM {files}",
+			"callback" => "_file_units",
+		),
 	);
+}
+
+/* converts bytes to biggest unit of file types, appends abbreviation */
+function _file_units($fs) {
+	$units = array('b', 'kb', 'mb' ,'gb', 'tb', 'pb');
+	$c = 0;
+	while ($fs >= 1024 && $c < sizeof($units)-1)  {
+		$c++;
+		$fs = $fs/1024.0;
+	}
+	return round($fs, 1) . $units[$c];
 }
  
 /** 
  * Gets data from db, interacts with cache
  */
 function _os_stats_content() {
-	//$out = "";
 	$data = array();
 	
 	//check cache
 	if ($cache = cache_get('os_stats_data')) {
 		$data = unserialize($cache->data);
-		//$out .= "<i>cached</i><Br />";
 	} else {
 		//build and store data
-		//$out .= "<i>uncached...rebuilding</i><Br />";
 		
-		foreach (_os_stats_stats() as $stat => $query) {
-			$data[] = $stat . ': ' . db_result(db_query($query));
+		foreach (os_stats_stats() as $stat => $def) {
+			//$data[] = $stat . ': ' . db_result(db_query($query));
+			if (variable_get('os_stats_stat_'.$stat, TRUE)) {
+				$result = db_result(db_query($def['query']));   //should be in an if so that bad queries never show up.  but that breaks anything that has a result of 0.
+				
+				if (isset($def['callback']) && function_exists($def['callback'])) {
+					$result = $def['callback']($result);
+				}
+				$data[] = $def['title'] . ': ' . $result;
+			}
 		}
-
 		cache_set('os_stats_data', serialize($data), 'cache', time() + variable_get('os_stats_cache_expiration', 3600));	
 	}
-	
-	/*
-	foreach($data as $key => $value) {
-		$out .= $key . ': ' . $value . '<br />';	
-	}*/
 	
 	return $data;
 }
