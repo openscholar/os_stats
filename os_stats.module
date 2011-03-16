@@ -34,7 +34,7 @@ function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
 				'#collapsible' => TRUE,
 				'#collapsed' => TRUE,
 			);
-			$stats = os_stats_stats();
+			$stats = os_stats_get_stats();
 			foreach($stats as $stat => $def) {
 				$form['os_stats_select']['os_stats_stat_'.$stat] = array(
 					'#type' => 'checkbox',
@@ -46,7 +46,7 @@ function os_stats_block($op = 'list', $delta = 0, $edit = array()) {
  		
  		case 'save':
 			variable_set('os_stats_cache_expiration', (int)$edit['os_stats_cache_expiration']);
-			foreach(os_stats_stats() as $stat => $def) {
+			foreach(os_stats_get_stats() as $stat => $def) {
 				variable_set('os_stats_stat_'.$stat, (bool)$edit['os_stats_stat_'.$stat]); 
 			}
 			//clear our cache?
@@ -69,6 +69,16 @@ function os_stats_theme() {
 	);
 }
 
+/** 
+ * gathers definitions from hook_os_stats_stats()
+ */
+function os_stats_get_stats($type=NULL, $object=NULL) {
+	$stats = array();
+	$stats = module_invoke_all('os_stats_stats', $type, $object);
+	drupal_alter('os_stats_stats', $stats, $type, $object);
+	return $stats;
+}
+
 /**
  * Theme function for os_stats_block
  */
@@ -78,9 +88,9 @@ function theme_os_stats_block($text, $origin) {
 }
 
 /**
- * Statistics available for this block
+ * Implementation of hook_os_stats_stats() on behalf of os_stats module
  */
-function os_stats_stats() {
+function os_stats_os_stats_stats() {
 	return array(
 		"Publications" => array(
 			"title" => "Publications",
@@ -107,6 +117,7 @@ function os_stats_stats() {
 			"description" => "Size of all files uploaded by users",
 			"query" => "SELECT SUM(filesize) FROM {files}",
 			"callback" => "_file_units",
+			//should the callback be in a specific file so it doesn't have to load all the time?
 		),
 	);
 }
@@ -134,8 +145,7 @@ function _os_stats_content() {
 	} else {
 		//build and store data
 		
-		foreach (os_stats_stats() as $stat => $def) {
-			//$data[] = $stat . ': ' . db_result(db_query($query));
+		foreach (os_stats_get_stats() as $stat => $def) {
 			if (variable_get('os_stats_stat_'.$stat, TRUE)) {
 				$result = db_result(db_query($def['query']));   //should be in an if so that bad queries never show up.  but that breaks anything that has a result of 0.
 				
