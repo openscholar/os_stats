@@ -72,10 +72,10 @@ function os_stats_theme() {
 /** 
  * gathers definitions from hook_os_stats_stats()
  */
-function os_stats_get_stats($type=NULL, $object=NULL) {
+function os_stats_get_stats() {
 	$stats = array();
-	$stats = module_invoke_all('os_stats_stats', $type, $object);
-	drupal_alter('os_stats_stats', $stats, $type, $object);
+	$stats = module_invoke_all('os_stats_stats');
+	drupal_alter('os_stats_stats', $stats);
 	return $stats;
 }
 
